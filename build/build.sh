@@ -101,16 +101,6 @@ fi
 log "Phase 2: Copying configuration overlay..."
 rsync -av --exclude='.gitkeep' "$ROOTFS_OVERLAY/" "$DEBIAN_ROOT/"
 
-# Fix ownership - rsync copies with local UID, but system files must be owned by root
-chown -R root:root "$DEBIAN_ROOT/etc/"
-chown -R root:root "$DEBIAN_ROOT/usr/"
-
-# Fix sudoers permissions (must be 0440 and owned by root)
-if [ -f "$DEBIAN_ROOT/etc/sudoers.d/claude" ]; then
-    chmod 0440 "$DEBIAN_ROOT/etc/sudoers.d/claude"
-    chown root:root "$DEBIAN_ROOT/etc/sudoers.d/claude"
-fi
-
 # Copy extra packages list for onboarding installation
 mkdir -p "$DEBIAN_ROOT/opt/claudian"
 cp "$BUILD_DIR/extra-packages.txt" "$DEBIAN_ROOT/opt/claudian/"
@@ -339,6 +329,39 @@ if [ -n "$ANTHROPIC_API_KEY" ]; then
 fi
 
 success "Build configuration complete"
+
+# --- Fix all file permissions inside the chroot ---
+# This is critical: rsync from the host copies files with the host user's UID.
+# We must fix ownership INSIDE the chroot where the user database is correct.
+log "Fixing file permissions inside chroot..."
+cat > "$DEBIAN_ROOT/tmp/fix-permissions.sh" <<'EOF'
+#!/bin/bash
+set -e
+
+# All system directories must be owned by root
+chown -R root:root /etc/
+chown -R root:root /usr/
+chown -R root:root /opt/
+
+# Sudoers must be root:root with strict permissions
+chown root:root /etc/sudoers.d/
+chmod 0755 /etc/sudoers.d/
+if [ -f /etc/sudoers.d/claude ]; then
+    chown root:root /etc/sudoers.d/claude
+    chmod 0440 /etc/sudoers.d/claude
+fi
+
+# Claude's home directory must be owned by claude user
+if id claude &>/dev/null; then
+    chown -R claude:claude /home/claude/
+fi
+
+echo "Permissions fixed"
+EOF
+
+chmod +x "$DEBIAN_ROOT/tmp/fix-permissions.sh"
+chroot "$DEBIAN_ROOT" /tmp/fix-permissions.sh
+success "File permissions fixed"
 
 # Unmount chroot filesystems before creating disk image
 log "Unmounting chroot filesystems..."
