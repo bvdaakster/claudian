@@ -15,7 +15,7 @@ set +a
 export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"  # set in /etc/environment or during onboarding
 export CLAUDE_WM_TOOL=/usr/local/bin/claude-open
 
-cd /workspace 2>/dev/null || cd /root
+cd /workspace 2>/dev/null || cd ~
 
 # Start MCP server in background
 node /opt/claudian/mcp/server.js &
@@ -26,8 +26,8 @@ sleep 1
 
 # Configurable Claude command - set CLAUDE_CMD in /etc/environment to customize
 # Example: export CLAUDE_CMD="claude --allow-dangerously-skip-permissions --permission-mode bypassPermissions"
-# Default: "claude --mcp-config /root/.config/claude/mcp.json"
-CLAUDE_CMD="${CLAUDE_CMD:-claude --mcp-config /root/.config/claude/mcp.json}"
+# Default: "claude --mcp-config ~/.config/claude/mcp.json"
+CLAUDE_CMD="${CLAUDE_CMD:-claude --mcp-config ~/.config/claude/mcp.json}"
 
 # Launch claude-code with configured command
 eval $CLAUDE_CMD

@@ -478,10 +478,10 @@ chsh -s /usr/bin/fish                # Set as default shell
 
 ## Configuration Files
 
-- `/root/.config/claude/mcp.json` - MCP server configuration
-- `/root/.config/claude/settings.json` - Claude Code settings
-- `/root/.config/i3/config` - i3 window manager config
-- `/root/.config/kitty/kitty.conf` - Kitty terminal config
+- `~/.config/claude/mcp.json` - MCP server configuration
+- `~/.config/claude/settings.json` - Claude Code settings
+- `~/.config/i3/config` - i3 window manager config
+- `~/.config/kitty/kitty.conf` - Kitty terminal config
 - `/etc/environment` - Global environment variables
 
 ## Tips & Tricks

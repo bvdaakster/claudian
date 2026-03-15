@@ -16,6 +16,7 @@ PACKAGES_FILE="$BUILD_DIR/base-packages.txt"
 MCP_DIR="/opt/claudian/mcp"
 DISK_IMAGE="$BUILD_DIR/claudian.img"
 CREATE_DISK_IMAGE="${CREATE_DISK_IMAGE:-yes}"  # Set to 'no' to skip image creation
+PASSWORDLESS_SUDO="${PASSWORDLESS_SUDO:-yes}"  # Set to 'no' to require password for sudo
 # ANTHROPIC_API_KEY - Optional: Include API key in build (skips onboarding)
 
 # Colors for output
@@ -198,6 +199,36 @@ fi
 echo "root:$ROOT_PASSWORD" | chroot "$DEBIAN_ROOT" chpasswd
 success "Root password set"
 
+# --- Create claude user ---
+if [ "$PASSWORDLESS_SUDO" = "yes" ]; then
+    log "Creating claude user with passwordless sudo..."
+    SUDO_MSG="passwordless sudo enabled"
+else
+    log "Creating claude user with password-required sudo..."
+    # Remove the NOPASSWD sudoers file if password is required
+    rm -f "$DEBIAN_ROOT/etc/sudoers.d/claude"
+    SUDO_MSG="password required for sudo"
+fi
+
+cat > "$DEBIAN_ROOT/tmp/create-claude-user.sh" <<'EOF'
+#!/bin/bash
+set -e
+
+# Create claude user with home directory
+useradd -m -s /bin/bash -G sudo,docker claude
+
+# Set proper permissions on sudoers file if it exists
+if [ -f /etc/sudoers.d/claude ]; then
+    chmod 0440 /etc/sudoers.d/claude
+fi
+
+echo "Claude user created"
+EOF
+
+chmod +x "$DEBIAN_ROOT/tmp/create-claude-user.sh"
+chroot "$DEBIAN_ROOT" /tmp/create-claude-user.sh
+success "Claude user created ($SUDO_MSG)"
+
 # --- Phase 10: Create bootable image ---
 log "Phase 10: Finalizing build..."
 
@@ -234,7 +265,7 @@ if [ "$BUILD_WITH_BYPASS" = "yes" ]; then
 # ANTHROPIC_API_KEY=your_key_here
 
 # Claude command with FULL PERMISSION BYPASS (configured during build)
-CLAUDE_CMD="claude --allow-dangerously-skip-permissions --permission-mode bypassPermissions --mcp-config /root/.config/claude/mcp.json"
+CLAUDE_CMD="claude --allow-dangerously-skip-permissions --permission-mode bypassPermissions --mcp-config ~/.config/claude/mcp.json"
 EOF
 else
     cat > "$DEBIAN_ROOT/etc/environment" <<'EOF'
@@ -244,9 +275,9 @@ else
 # ANTHROPIC_API_KEY=your_key_here
 
 # Configure Claude command flags:
-# Default: claude --mcp-config /root/.config/claude/mcp.json
+# Default: claude --mcp-config ~/.config/claude/mcp.json
 # Bypass permissions: claude --allow-dangerously-skip-permissions --permission-mode bypassPermissions
-# CLAUDE_CMD="claude --allow-dangerously-skip-permissions --permission-mode bypassPermissions --mcp-config /root/.config/claude/mcp.json"
+# CLAUDE_CMD="claude --allow-dangerously-skip-permissions --permission-mode bypassPermissions --mcp-config ~/.config/claude/mcp.json"
 EOF
 fi
 
@@ -255,7 +286,7 @@ if [ -n "$ANTHROPIC_API_KEY" ]; then
     log "Including API key in build (onboarding will be skipped)"
     echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> "$DEBIAN_ROOT/etc/environment"
     # Mark onboarding as complete so it doesn't run on first boot
-    touch "$DEBIAN_ROOT/root/.claudian-onboarding-complete"
+    touch "$DEBIAN_ROOT/home/claude/.claudian-onboarding-complete"
     success "API key included in build"
 fi
 
@@ -421,7 +452,9 @@ else
     echo "  2. On first boot, onboarding will guide you through authentication"
 fi
 echo ""
-log "Default root password: ${ROOT_PASSWORD}"
+log "Users:"
+echo "  - root password: ${ROOT_PASSWORD}"
+echo "  - claude user: autologin, $SUDO_MSG"
 if [ -n "$ANTHROPIC_API_KEY" ]; then
     log "Authentication: API key included in build (onboarding skipped)"
 else
@@ -435,4 +468,5 @@ echo ""
 log "Build options:"
 echo "  - Include API key: ANTHROPIC_API_KEY=sk-ant-... sudo -E ./build.sh"
 echo "  - Skip disk image: CREATE_DISK_IMAGE=no sudo ./build.sh"
-echo "  - Custom disk size: DISK_SIZE=16G sudo ./build.sh"
+echo "  - Require sudo password: PASSWORDLESS_SUDO=no sudo ./build.sh"
+echo "  - Permission bypass: BUILD_WITH_BYPASS=yes sudo ./build.sh"

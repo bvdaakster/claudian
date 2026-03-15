@@ -1,0 +1,2 @@
+# Allow claude user to run any command without password
+claude ALL=(ALL) NOPASSWD: ALL

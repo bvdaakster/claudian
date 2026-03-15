@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "claudian": {
+      "command": "node",
+      "args": ["/opt/claudian/mcp/server.js"],
+      "env": {}
+    }
+  }
+}

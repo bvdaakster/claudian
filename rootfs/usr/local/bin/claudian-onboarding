@@ -6,7 +6,7 @@
 
 set -e
 
-ONBOARDING_COMPLETE_FLAG="/root/.claudian-onboarding-complete"
+ONBOARDING_COMPLETE_FLAG="$HOME/.claudian-onboarding-complete"
 ENV_FILE="/etc/environment"
 
 # Check if onboarding is needed

@@ -8,7 +8,7 @@
 #   skip - Don't expand
 #==============================================================================
 
-EXPANSION_FLAG="/root/.claudian-partition-expanded"
+EXPANSION_FLAG="$HOME/.claudian-partition-expanded"
 MODE="${1:-auto}"
 
 # Check if already expanded
