@@ -35,8 +35,113 @@ cat << 'EOF'
 
 EOF
 
-# --- Step 1: Partition Size Setup ---
-echo "First, let's configure your storage partition."
+# --- Step 1: Network Configuration ---
+echo "First, let's set up network connectivity."
+echo ""
+
+# Check if already connected
+if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
+    echo "✓ Network connection detected"
+    echo ""
+    sleep 1
+else
+    echo "No network connection detected."
+    echo ""
+    echo "Choose your network setup:"
+    echo ""
+    echo "  1) Connect to WiFi"
+    echo "     Use NetworkManager to connect to a wireless network"
+    echo ""
+    echo "  2) Use Ethernet / Skip"
+    echo "     Continue without configuring WiFi (ethernet should work automatically)"
+    echo ""
+
+    while true; do
+        read -p "Enter choice [1 or 2]: " network_choice
+        case $network_choice in
+            1)
+                echo ""
+                echo "Scanning for WiFi networks..."
+                echo ""
+
+                # Scan for networks
+                sudo nmcli device wifi rescan 2>/dev/null || true
+                sleep 2
+
+                # List available networks
+                echo "Available networks:"
+                sudo nmcli device wifi list
+                echo ""
+
+                # Ask for SSID
+                read -p "Enter WiFi network name (SSID): " wifi_ssid
+
+                if [ -z "$wifi_ssid" ]; then
+                    echo "No SSID provided, skipping WiFi setup"
+                    sleep 1
+                    break
+                fi
+
+                # Ask for password
+                read -sp "Enter WiFi password (leave empty for open network): " wifi_password
+                echo ""
+
+                # Connect
+                echo "Connecting to '$wifi_ssid'..."
+                if [ -z "$wifi_password" ]; then
+                    # Open network
+                    if sudo nmcli device wifi connect "$wifi_ssid"; then
+                        echo ""
+                        echo "✓ Connected to $wifi_ssid"
+                        echo ""
+                        sleep 2
+                        break
+                    else
+                        echo ""
+                        echo "✗ Connection failed"
+                        echo ""
+                        read -p "Press Enter to try again or Ctrl+C to abort..."
+                    fi
+                else
+                    # Secured network
+                    if sudo nmcli device wifi connect "$wifi_ssid" password "$wifi_password"; then
+                        echo ""
+                        echo "✓ Connected to $wifi_ssid"
+                        echo ""
+                        sleep 2
+                        break
+                    else
+                        echo ""
+                        echo "✗ Connection failed. Check your password and try again."
+                        echo ""
+                        read -p "Press Enter to try again or Ctrl+C to abort..."
+                    fi
+                fi
+                ;;
+            2)
+                echo ""
+                echo "Skipping WiFi configuration"
+                echo ""
+                sleep 1
+                break
+                ;;
+            *)
+                echo "Invalid choice. Please enter 1 or 2."
+                ;;
+        esac
+    done
+fi
+
+# --- Step 2: Partition Size Setup ---
+clear
+cat << 'EOF'
+╔════════════════════════════════════════════════════════════════╗
+║                   Storage Configuration                        ║
+╚════════════════════════════════════════════════════════════════╝
+
+EOF
+
+echo "Now, let's configure your storage partition."
 echo ""
 
 # Get current partition info
@@ -110,7 +215,7 @@ while true; do
     esac
 done
 
-# --- Step 2: Sudo Configuration ---
+# --- Step 3: Sudo Configuration ---
 clear
 cat << 'EOF'
 ╔════════════════════════════════════════════════════════════════╗
@@ -172,7 +277,7 @@ while true; do
     esac
 done
 
-# --- Step 3: Authentication Setup ---
+# --- Step 4: Authentication Setup ---
 clear
 cat << 'EOF'
 ╔════════════════════════════════════════════════════════════════╗
@@ -181,7 +286,7 @@ cat << 'EOF'
 
 EOF
 
-echo "Now, let's authenticate with Anthropic."
+echo "Finally, let's authenticate with Anthropic."
 echo ""
 echo "Choose your authentication method:"
 echo ""

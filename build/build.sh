@@ -435,13 +435,13 @@ if [ "$CREATE_DISK_IMAGE" = "yes" ]; then
     echo ""
     echo "  2. Boot from the USB drive"
     echo "     - First boot will run interactive onboarding wizard"
-    echo "     - Configure partition size, sudo access, and authentication"
+    echo "     - Configure network, partition, security, and authentication"
 else
     echo "  1. Deploy to VM or create bootable image"
     echo "     - Or tar it up: cd $DEBIAN_ROOT && tar czf ../claudian-rootfs.tar.gz ."
     echo ""
     echo "  2. On first boot, onboarding will guide you through setup"
-    echo "     - Configure partition size, sudo access, and authentication"
+    echo "     - Configure network, partition, security, and authentication"
 fi
 echo ""
 log "Users:"
@@ -455,9 +455,10 @@ else
 fi
 echo ""
 log "First boot onboarding will configure:"
-echo "  1. Partition size (auto-expand, custom size, or keep current)"
-echo "  2. Sudo access (passwordless or password-required)"
-echo "  3. Anthropic authentication (browser sign-in or API key)"
+echo "  1. Network connectivity (WiFi setup or skip for ethernet)"
+echo "  2. Partition size (auto-expand, custom size, or keep current)"
+echo "  3. Sudo access (passwordless or password-required)"
+echo "  4. Anthropic authentication (browser sign-in or API key)"
 if [ "$BUILD_WITH_BYPASS" = "yes" ]; then
     echo ""
     log "⚠️  PERMISSION BYPASS MODE ENABLED - Claude will run with full automation"
