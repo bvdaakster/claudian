@@ -43,14 +43,22 @@ if [ "$EUID" -ne 0 ]; then
     error "Please run as root (required for debootstrap and chroot)"
 fi
 
+# Check and install required tools
+log "Checking for required tools..."
+command -v rsync >/dev/null 2>&1 || {
+    log "Installing rsync..."
+    apt-get update && apt-get install -y rsync
+}
+command -v debootstrap >/dev/null 2>&1 || {
+    log "Installing debootstrap..."
+    apt-get install -y debootstrap
+}
+
 # --- Phase 1: Debootstrap ---
 log "Phase 1: Creating minimal Debian base system..."
 if [ -d "$DEBIAN_ROOT" ]; then
     log "Debian root already exists. Skipping debootstrap."
 else
-    log "Installing debootstrap if needed..."
-    command -v debootstrap >/dev/null 2>&1 || apt-get install -y debootstrap
-
     log "Running debootstrap for $DEBIAN_RELEASE..."
     debootstrap --arch=amd64 "$DEBIAN_RELEASE" "$DEBIAN_ROOT" http://deb.debian.org/debian/
     success "Debootstrap completed"
