@@ -62,15 +62,9 @@ gcc
 g++
 make
 build-essential
-golang-go
-rustc
-cargo
-default-jdk
 docker.io
 docker-compose
 sqlite3
-postgresql-client
-redis-tools
 
 # System & DevOps Tools
 htop
