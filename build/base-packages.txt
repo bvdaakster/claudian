@@ -10,6 +10,8 @@ curl
 wget
 git
 vim
+cloud-utils
+e2fsprogs
 
 # X11 + i3
 xorg

@@ -15,7 +15,6 @@ DEBIAN_ROOT="$BUILD_DIR/debian-root"
 PACKAGES_FILE="$BUILD_DIR/base-packages.txt"
 MCP_DIR="/opt/claudian/mcp"
 DISK_IMAGE="$BUILD_DIR/claudian.img"
-DISK_SIZE="8G"  # Size of the bootable disk image
 CREATE_DISK_IMAGE="${CREATE_DISK_IMAGE:-yes}"  # Set to 'no' to skip image creation
 # ANTHROPIC_API_KEY - Optional: Include API key in build (skips onboarding)
 
@@ -283,9 +282,18 @@ if [ "$CREATE_DISK_IMAGE" = "yes" ]; then
         rm -f "$DISK_IMAGE"
     fi
 
+    # Calculate required disk size (actual size + 1GB overhead for filesystem + bootloader)
+    log "Calculating required disk size..."
+    ROOTFS_SIZE=$(du -sb "$DEBIAN_ROOT" | cut -f1)
+    OVERHEAD_BYTES=$((1024 * 1024 * 1024))  # 1GB overhead
+    TOTAL_BYTES=$((ROOTFS_SIZE + OVERHEAD_BYTES))
+    TOTAL_MB=$((TOTAL_BYTES / 1024 / 1024))
+
+    log "Root filesystem size: $(du -sh "$DEBIAN_ROOT" | cut -f1)"
+    log "Creating ${TOTAL_MB}MB disk image (will auto-expand on first boot)..."
+
     # Create disk image
-    log "Creating ${DISK_SIZE} disk image..."
-    fallocate -l "$DISK_SIZE" "$DISK_IMAGE" || dd if=/dev/zero of="$DISK_IMAGE" bs=1M count=8192
+    fallocate -l "${TOTAL_MB}M" "$DISK_IMAGE" || dd if=/dev/zero of="$DISK_IMAGE" bs=1M count="$TOTAL_MB"
 
     # Set up loop device
     log "Setting up loop device..."
