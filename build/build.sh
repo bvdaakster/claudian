@@ -243,8 +243,12 @@ cat > "$DEBIAN_ROOT/tmp/create-claude-user.sh" <<'EOF'
 #!/bin/bash
 set -e
 
-# Create claude user with home directory
-useradd -m -s /bin/bash -G sudo claude
+# Create claude user with home directory (skip if already exists)
+if id claude &>/dev/null; then
+    echo "Claude user already exists, skipping creation"
+else
+    useradd -m -s /bin/bash -G sudo claude
+fi
 
 # Add to docker group if it exists (docker may be installed later)
 groupadd -f docker 2>/dev/null || true
