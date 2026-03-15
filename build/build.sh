@@ -99,7 +99,9 @@ fi
 
 # --- Phase 2: Copy rootfs overlay ---
 log "Phase 2: Copying configuration overlay..."
-rsync -av --exclude='.gitkeep' "$ROOTFS_OVERLAY/" "$DEBIAN_ROOT/"
+# Use -rlptD instead of -a to avoid copying host user ownership (-a = -rlptgoD)
+# Since build runs as root, all overlay files will be owned by root:root
+rsync -rlptD --exclude='.gitkeep' "$ROOTFS_OVERLAY/" "$DEBIAN_ROOT/"
 
 # Copy extra packages list for onboarding installation
 mkdir -p "$DEBIAN_ROOT/opt/claudian"
@@ -338,18 +340,16 @@ cat > "$DEBIAN_ROOT/tmp/fix-permissions.sh" <<'EOF'
 #!/bin/bash
 set -e
 
-# All system directories must be owned by root
-chown -R root:root /etc/
-chown -R root:root /usr/
-chown -R root:root /opt/
-
-# Sudoers must be root:root with strict permissions
+# Fix sudoers (must be root:root with strict permissions)
 chown root:root /etc/sudoers.d/
 chmod 0755 /etc/sudoers.d/
 if [ -f /etc/sudoers.d/claude ]; then
     chown root:root /etc/sudoers.d/claude
     chmod 0440 /etc/sudoers.d/claude
 fi
+
+# Verify sudo binary has setuid bit
+chmod 4755 /usr/bin/sudo
 
 # Claude's home directory must be owned by claude user
 if id claude &>/dev/null; then
