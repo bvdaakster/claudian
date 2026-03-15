@@ -66,6 +66,9 @@ fi
 # --- Phase 2: Copy rootfs overlay ---
 log "Phase 2: Copying configuration overlay..."
 rsync -av --exclude='.gitkeep' "$ROOTFS_OVERLAY/" "$DEBIAN_ROOT/"
+
+# Copy extra packages list for onboarding installation
+cp "$BUILD_DIR/extra-packages.txt" "$DEBIAN_ROOT/opt/claudian/"
 success "Configuration overlay applied"
 
 # Copy MCP server files
@@ -456,9 +459,10 @@ fi
 echo ""
 log "First boot onboarding will configure:"
 echo "  1. Network connectivity (WiFi setup or skip for ethernet)"
-echo "  2. Partition size (auto-expand, custom size, or keep current)"
-echo "  3. Sudo access (passwordless or password-required)"
-echo "  4. Anthropic authentication (browser sign-in or API key)"
+echo "  2. Extra packages (install dev tools, CLI utils, etc.)"
+echo "  3. Partition size (auto-expand, custom size, or keep current)"
+echo "  4. Sudo access (passwordless or password-required)"
+echo "  5. Anthropic authentication (browser sign-in or API key)"
 if [ "$BUILD_WITH_BYPASS" = "yes" ]; then
     echo ""
     log "⚠️  PERMISSION BYPASS MODE ENABLED - Claude will run with full automation"

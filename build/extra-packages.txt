@@ -1,0 +1,84 @@
+# Claudian Extra Packages
+# Installed during first-boot onboarding after network is configured
+
+# Desktop automation & control
+xdotool
+wmctrl
+xautomation
+xclip
+xsel
+xinput
+xbindkeys
+xvkbd
+
+# Development & Programming
+python3
+python3-pip
+python3-venv
+gcc
+g++
+make
+build-essential
+docker.io
+docker-compose
+sqlite3
+
+# System & DevOps Tools
+htop
+btop
+tmux
+jq
+yq
+ripgrep
+fd-find
+bat
+tree
+ncdu
+strace
+tcpdump
+
+# Text & Document Processing
+pandoc
+imagemagick
+ffmpeg
+poppler-utils
+ghostscript
+
+# Networking & Web
+nmap
+netcat-openbsd
+aria2
+mtr
+
+# File & Archive Tools
+zip
+unzip
+p7zip-full
+rsync
+rclone
+
+# Graphics & Media
+mpv
+scrot
+feh
+
+# AI/ML & Data Science
+python3-numpy
+python3-pandas
+python3-matplotlib
+gnuplot
+
+# Version Control & Collaboration
+git-lfs
+gh
+tig
+
+# Security & Privacy
+gnupg
+pass
+openssl
+
+# CLI Enhancement
+zsh
+fish
+fzf

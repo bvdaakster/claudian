@@ -132,7 +132,77 @@ else
     done
 fi
 
-# --- Step 2: Partition Size Setup ---
+# --- Step 2: Install Extra Packages ---
+EXTRAS_FILE="/opt/claudian/extra-packages.txt"
+if [ -f "$EXTRAS_FILE" ]; then
+    clear
+    cat << 'EOF'
+╔════════════════════════════════════════════════════════════════╗
+║                   Package Installation                         ║
+╚════════════════════════════════════════════════════════════════╝
+
+EOF
+
+    echo "Claudian includes additional tools for development, automation,"
+    echo "and system control that need to be installed."
+    echo ""
+    echo "This includes: Python, Docker, xdotool, ffmpeg, ripgrep,"
+    echo "htop, tmux, jq, and many more CLI tools."
+    echo ""
+    echo "Choose an option:"
+    echo ""
+    echo "  1) Install all extra packages (recommended)"
+    echo "     Full Claudian experience with all tools"
+    echo ""
+    echo "  2) Skip for now"
+    echo "     Minimal system, install packages later with:"
+    echo "     sudo apt install \$(grep -v '^#' /opt/claudian/extra-packages.txt | tr '\\n' ' ')"
+    echo ""
+
+    while true; do
+        read -p "Enter choice [1 or 2]: " pkg_choice
+        case $pkg_choice in
+            1)
+                echo ""
+                echo "Installing extra packages... (this may take a while)"
+                echo ""
+
+                # Read package list, skip comments and empty lines
+                PACKAGES=$(grep -v '^\s*#' "$EXTRAS_FILE" | grep -v '^\s*$' | tr '\n' ' ')
+
+                sudo apt-get update
+                if sudo apt-get install -y $PACKAGES; then
+                    echo ""
+                    echo "✓ All extra packages installed successfully!"
+
+                    # Remove the extras file since they're installed
+                    sudo rm -f "$EXTRAS_FILE"
+                else
+                    echo ""
+                    echo "⚠ Some packages may have failed to install."
+                    echo "  You can retry later with:"
+                    echo "  sudo apt install \$(grep -v '^#' $EXTRAS_FILE | tr '\\n' ' ')"
+                fi
+                echo ""
+                sleep 2
+                break
+                ;;
+            2)
+                echo ""
+                echo "Skipping package installation."
+                echo "Install later: sudo apt install \$(grep -v '^#' $EXTRAS_FILE | tr '\\n' ' ')"
+                echo ""
+                sleep 2
+                break
+                ;;
+            *)
+                echo "Invalid choice. Please enter 1 or 2."
+                ;;
+        esac
+    done
+fi
+
+# --- Step 3: Partition Size Setup ---
 clear
 cat << 'EOF'
 ╔════════════════════════════════════════════════════════════════╗
@@ -215,7 +285,7 @@ while true; do
     esac
 done
 
-# --- Step 3: Sudo Configuration ---
+# --- Step 4: Sudo Configuration ---
 clear
 cat << 'EOF'
 ╔════════════════════════════════════════════════════════════════╗
@@ -277,7 +347,7 @@ while true; do
     esac
 done
 
-# --- Step 4: Authentication Setup ---
+# --- Step 5: Authentication Setup ---
 clear
 cat << 'EOF'
 ╔════════════════════════════════════════════════════════════════╗

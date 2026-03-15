@@ -1,4 +1,4 @@
-# Core
+# Core (essential for boot)
 linux-image-amd64
 grub-pc
 systemd
@@ -25,23 +25,13 @@ x11-xserver-utils
 xinit
 xterm
 
-# Desktop automation & control
-xdotool
-wmctrl
-xautomation
-xclip
-xsel
-xinput
-xbindkeys
-xvkbd
-
 # Terminal
 kitty
 
-# Browser (add Chromium repo separately)
+# Browser
 chromium
 
-# Node (for MCP server)
+# Node (for MCP server + Claude Code)
 nodejs
 npm
 
@@ -53,75 +43,3 @@ fonts-dejavu-core
 fonts-noto
 xfonts-base
 libxft2
-
-# Development & Programming
-python3
-python3-pip
-python3-venv
-gcc
-g++
-make
-build-essential
-docker.io
-docker-compose
-sqlite3
-
-# System & DevOps Tools
-htop
-btop
-tmux
-jq
-yq
-ripgrep
-fd-find
-bat
-tree
-ncdu
-strace
-tcpdump
-
-# Text & Document Processing
-pandoc
-imagemagick
-ffmpeg
-poppler-utils
-ghostscript
-
-# Networking & Web
-nmap
-netcat-openbsd
-aria2
-mtr
-
-# File & Archive Tools
-zip
-unzip
-p7zip-full
-rsync
-rclone
-
-# Graphics & Media
-mpv
-scrot
-feh
-
-# AI/ML & Data Science
-python3-numpy
-python3-pandas
-python3-matplotlib
-gnuplot
-
-# Version Control & Collaboration
-git-lfs
-gh
-tig
-
-# Security & Privacy
-gnupg
-pass
-openssl
-
-# CLI Enhancement
-zsh
-fish
-fzf
