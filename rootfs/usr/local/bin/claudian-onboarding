@@ -1,0 +1,130 @@
+#!/bin/bash
+#==============================================================================
+# Claudian Onboarding - First Boot Setup
+# Handles authentication setup on first boot
+#==============================================================================
+
+set -e
+
+ONBOARDING_COMPLETE_FLAG="/root/.claudian-onboarding-complete"
+ENV_FILE="/etc/environment"
+
+# Check if onboarding is needed
+if [ -f "$ONBOARDING_COMPLETE_FLAG" ]; then
+    # Already completed
+    exit 0
+fi
+
+# Check if API key is already set
+if grep -q "^ANTHROPIC_API_KEY=" "$ENV_FILE" 2>/dev/null; then
+    # API key already configured, mark as complete
+    touch "$ONBOARDING_COMPLETE_FLAG"
+    exit 0
+fi
+
+# Clear screen and show welcome
+clear
+cat << 'EOF'
+TPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPW
+Q                                                                Q
+Q                   Welcome to Claudian OS                       Q
+Q                                                                Q
+Q          Where Claude Code operates your machine               Q
+Q                                                                Q
+ZPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP]
+
+EOF
+
+echo "To get started, you need to authenticate with Anthropic."
+echo ""
+echo "Choose your authentication method:"
+echo ""
+echo "  1) Sign in with browser (recommended)"
+echo "     Uses 'claude auth login' to authenticate via web browser"
+echo ""
+echo "  2) Enter API key manually"
+echo "     Use an API key from console.anthropic.com"
+echo ""
+
+# Read choice
+while true; do
+    read -p "Enter choice [1 or 2]: " choice
+    case $choice in
+        1)
+            # Use claude auth login
+            echo ""
+            echo "Launching authentication flow..."
+            echo "Follow the prompts to sign in through your browser."
+            echo ""
+
+            # Run claude auth login
+            if claude auth login; then
+                echo ""
+                echo " Authentication successful!"
+                echo ""
+
+                # Mark onboarding as complete
+                touch "$ONBOARDING_COMPLETE_FLAG"
+
+                echo "Press Enter to continue..."
+                read
+                exit 0
+            else
+                echo ""
+                echo " Authentication failed. Please try again."
+                echo ""
+                read -p "Press Enter to retry..."
+                clear
+                exec "$0"  # Restart onboarding
+            fi
+            ;;
+        2)
+            # Manual API key entry
+            echo ""
+            echo "Enter your Anthropic API key (starts with 'sk-ant-'):"
+            echo "(You can find this at https://console.anthropic.com/settings/keys)"
+            echo ""
+            read -p "API Key: " api_key
+
+            # Basic validation
+            if [[ ! "$api_key" =~ ^sk-ant- ]]; then
+                echo ""
+                echo " Invalid API key format. Keys should start with 'sk-ant-'"
+                echo ""
+                read -p "Press Enter to try again..."
+                clear
+                exec "$0"  # Restart onboarding
+            fi
+
+            # Save to environment file
+            echo ""
+            echo "Saving API key to $ENV_FILE..."
+
+            # Read existing environment file
+            if [ -f "$ENV_FILE" ]; then
+                # Remove any existing ANTHROPIC_API_KEY line
+                grep -v "^ANTHROPIC_API_KEY=" "$ENV_FILE" > "$ENV_FILE.tmp" || true
+                mv "$ENV_FILE.tmp" "$ENV_FILE"
+            fi
+
+            # Add the API key
+            echo "ANTHROPIC_API_KEY=$api_key" >> "$ENV_FILE"
+
+            # Export for current session
+            export ANTHROPIC_API_KEY="$api_key"
+
+            echo " API key saved successfully!"
+            echo ""
+
+            # Mark onboarding as complete
+            touch "$ONBOARDING_COMPLETE_FLAG"
+
+            echo "Press Enter to continue..."
+            read
+            exit 0
+            ;;
+        *)
+            echo "Invalid choice. Please enter 1 or 2."
+            ;;
+    esac
+done

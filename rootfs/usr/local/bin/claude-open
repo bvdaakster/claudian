@@ -1,0 +1,22 @@
+#!/bin/bash
+# Claude calls this to open a new terminal or app in i3
+# Usage: claude-open terminal | claude-open browser <url>
+
+ACTION="$1"
+TARGET="$2"
+
+case "$ACTION" in
+  terminal)
+    i3-msg "split h; exec kitty"
+    ;;
+  browser)
+    i3-msg "split h; exec chromium \"${TARGET:-about:blank}\""
+    ;;
+  workspace)
+    i3-msg "workspace ${TARGET:-2}"
+    ;;
+  *)
+    echo "Usage: claude-open terminal|browser|workspace [target]"
+    exit 1
+    ;;
+esac

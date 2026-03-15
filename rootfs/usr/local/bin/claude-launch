@@ -1,0 +1,34 @@
+#!/bin/bash
+# Runs inside the left-pane kitty terminal on startup
+# Sets up the environment and starts claude-code
+
+# Run first-boot onboarding if needed
+/usr/local/bin/claudian-onboarding
+
+# Source environment to get API key (might have been set during onboarding)
+set -a
+source /etc/environment 2>/dev/null || true
+set +a
+
+export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"  # set in /etc/environment or during onboarding
+export CLAUDE_WM_TOOL=/usr/local/bin/claude-open
+
+cd /workspace 2>/dev/null || cd /root
+
+# Start MCP server in background
+node /opt/claudian/mcp/server.js &
+MCP_PID=$!
+
+# Give MCP server a moment
+sleep 1
+
+# Configurable Claude command - set CLAUDE_CMD in /etc/environment to customize
+# Example: export CLAUDE_CMD="claude --allow-dangerously-skip-permissions --permission-mode bypassPermissions"
+# Default: "claude --mcp-config /root/.config/claude/mcp.json"
+CLAUDE_CMD="${CLAUDE_CMD:-claude --mcp-config /root/.config/claude/mcp.json}"
+
+# Launch claude-code with configured command
+eval $CLAUDE_CMD
+
+# On exit, kill MCP server
+kill $MCP_PID 2>/dev/null

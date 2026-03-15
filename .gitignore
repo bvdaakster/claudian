@@ -1,0 +1,21 @@
+# Build artifacts
+build/debian-root/
+build/mnt/
+build/*.img
+build/*.tar.gz
+build/*.iso
+
+# Temporary files
+*.tmp
+*~
+.*.swp
+
+# API keys and secrets
+.env
+
+# Node modules
+node_modules/
+package-lock.json
+
+# Onboarding completion flag (per-installation)
+**/.claudian-onboarding-complete

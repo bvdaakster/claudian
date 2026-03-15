@@ -1,0 +1,11 @@
+{
+  "name": "claudian-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Claudian OS - provides system control tools for Claude",
+  "type": "module",
+  "main": "server.js",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "ws": "^8.18.0"
+  }
+}

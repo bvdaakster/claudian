@@ -1,0 +1,42 @@
+# Core
+linux-image-amd64
+grub-pc
+systemd
+udev
+network-manager
+openssh-server
+sudo
+curl
+wget
+git
+vim
+
+# X11 + i3
+xorg
+xserver-xorg-input-libinput
+i3-wm
+i3status
+dmenu
+x11-utils
+x11-xserver-utils
+xinit
+xterm
+
+# Terminal
+kitty
+
+# Browser (add Chromium repo separately)
+chromium
+
+# Node (for MCP server)
+nodejs
+npm
+
+# Claude Code
+# Install via npm after base is up: npm install -g @anthropic-ai/claude-code
+
+# HiDPI / font
+fonts-dejavu-core
+fonts-noto
+xfonts-base
+libxft2
