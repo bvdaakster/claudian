@@ -16,6 +16,7 @@ PACKAGES_FILE="$BUILD_DIR/base-packages.txt"
 MCP_DIR="/opt/claudian/mcp"
 DISK_IMAGE="$BUILD_DIR/claudian.img"
 CREATE_DISK_IMAGE="${CREATE_DISK_IMAGE:-yes}"  # Set to 'no' to skip image creation
+INCLUDE_NONFREE_FIRMWARE="${INCLUDE_NONFREE_FIRMWARE:-no}"  # Set to 'yes' to include WiFi/hardware firmware
 # ANTHROPIC_API_KEY - Optional: Include API key in build (skips onboarding)
 
 # Colors for output
@@ -97,6 +98,17 @@ else
     success "Debootstrap completed"
 fi
 
+# Enable non-free-firmware repo for WiFi/hardware firmware
+if [ "$INCLUDE_NONFREE_FIRMWARE" = "yes" ]; then
+    log "Enabling non-free-firmware repository for hardware support..."
+    cat > "$DEBIAN_ROOT/etc/apt/sources.list" <<EOF
+deb http://deb.debian.org/debian $DEBIAN_RELEASE main contrib non-free-firmware
+deb http://deb.debian.org/debian $DEBIAN_RELEASE-updates main contrib non-free-firmware
+deb http://security.debian.org/debian-security $DEBIAN_RELEASE-security main contrib non-free-firmware
+EOF
+    success "Non-free firmware repository enabled"
+fi
+
 # --- Phase 2: Copy rootfs overlay ---
 log "Phase 2: Copying configuration overlay..."
 # Use -rlptD instead of -a to avoid copying host user ownership (-a = -rlptgoD)
@@ -146,6 +158,13 @@ cp "$PACKAGES_FILE" "$DEBIAN_ROOT/tmp/base-packages.txt"
 
 chroot "$DEBIAN_ROOT" /tmp/install-packages.sh
 success "Base packages installed"
+
+# Install non-free firmware if enabled
+if [ "$INCLUDE_NONFREE_FIRMWARE" = "yes" ]; then
+    log "Installing WiFi and hardware firmware..."
+    chroot "$DEBIAN_ROOT" apt-get install -y firmware-iwlwifi firmware-realtek firmware-atheros wireless-regdb
+    success "Non-free firmware installed"
+fi
 
 # --- Phase 4: Install Chromium ---
 log "Phase 4: Chromium should be installed via base packages"
@@ -566,3 +585,4 @@ log "Build options:"
 echo "  - Include API key: ANTHROPIC_API_KEY=sk-ant-... sudo -E ./build.sh"
 echo "  - Skip disk image: CREATE_DISK_IMAGE=no sudo ./build.sh"
 echo "  - Permission bypass: BUILD_WITH_BYPASS=yes sudo ./build.sh"
+echo "  - WiFi firmware: INCLUDE_NONFREE_FIRMWARE=yes sudo ./build.sh"
