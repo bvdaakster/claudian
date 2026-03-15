@@ -350,7 +350,7 @@ if [ "$CREATE_DISK_IMAGE" = "yes" ]; then
     # Calculate required disk size (actual size + 1GB overhead for filesystem + bootloader)
     log "Calculating required disk size..."
     ROOTFS_SIZE=$(du -sb "$DEBIAN_ROOT" | cut -f1)
-    OVERHEAD_BYTES=$((1024 * 1024 * 1024))  # 1GB overhead
+    OVERHEAD_BYTES=$((2 * 1024 * 1024 * 1024))  # 2GB overhead (includes 512MB EFI partition)
     TOTAL_BYTES=$((ROOTFS_SIZE + OVERHEAD_BYTES))
     TOTAL_MB=$((TOTAL_BYTES / 1024 / 1024))
 
