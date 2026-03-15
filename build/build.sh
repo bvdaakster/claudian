@@ -16,7 +16,6 @@ PACKAGES_FILE="$BUILD_DIR/base-packages.txt"
 MCP_DIR="/opt/claudian/mcp"
 DISK_IMAGE="$BUILD_DIR/claudian.img"
 CREATE_DISK_IMAGE="${CREATE_DISK_IMAGE:-yes}"  # Set to 'no' to skip image creation
-PASSWORDLESS_SUDO="${PASSWORDLESS_SUDO:-yes}"  # Set to 'no' to require password for sudo
 # ANTHROPIC_API_KEY - Optional: Include API key in build (skips onboarding)
 
 # Colors for output
@@ -200,15 +199,7 @@ echo "root:$ROOT_PASSWORD" | chroot "$DEBIAN_ROOT" chpasswd
 success "Root password set"
 
 # --- Create claude user ---
-if [ "$PASSWORDLESS_SUDO" = "yes" ]; then
-    log "Creating claude user with passwordless sudo..."
-    SUDO_MSG="passwordless sudo enabled"
-else
-    log "Creating claude user with password-required sudo..."
-    # Remove the NOPASSWD sudoers file if password is required
-    rm -f "$DEBIAN_ROOT/etc/sudoers.d/claude"
-    SUDO_MSG="password required for sudo"
-fi
+log "Creating claude user..."
 
 cat > "$DEBIAN_ROOT/tmp/create-claude-user.sh" <<'EOF'
 #!/bin/bash
@@ -217,7 +208,7 @@ set -e
 # Create claude user with home directory
 useradd -m -s /bin/bash -G sudo,docker claude
 
-# Set proper permissions on sudoers file if it exists
+# Set proper permissions on sudoers file (will be configured during onboarding)
 if [ -f /etc/sudoers.d/claude ]; then
     chmod 0440 /etc/sudoers.d/claude
 fi
@@ -227,7 +218,7 @@ EOF
 
 chmod +x "$DEBIAN_ROOT/tmp/create-claude-user.sh"
 chroot "$DEBIAN_ROOT" /tmp/create-claude-user.sh
-success "Claude user created ($SUDO_MSG)"
+success "Claude user created (sudo will be configured during onboarding)"
 
 # --- Phase 10: Create bootable image ---
 log "Phase 10: Finalizing build..."
@@ -443,23 +434,30 @@ if [ "$CREATE_DISK_IMAGE" = "yes" ]; then
     echo "     (Replace /dev/sdX with your USB device - check with 'lsblk')"
     echo ""
     echo "  2. Boot from the USB drive"
-    echo "     - First boot will show onboarding to set up authentication"
-    echo "     - Choose to sign in with browser OR enter an API key"
+    echo "     - First boot will run interactive onboarding wizard"
+    echo "     - Configure partition size, sudo access, and authentication"
 else
     echo "  1. Deploy to VM or create bootable image"
     echo "     - Or tar it up: cd $DEBIAN_ROOT && tar czf ../claudian-rootfs.tar.gz ."
     echo ""
-    echo "  2. On first boot, onboarding will guide you through authentication"
+    echo "  2. On first boot, onboarding will guide you through setup"
+    echo "     - Configure partition size, sudo access, and authentication"
 fi
 echo ""
 log "Users:"
-echo "  - root password: ${ROOT_PASSWORD}"
-echo "  - claude user: autologin, $SUDO_MSG"
+echo "  - root: password '${ROOT_PASSWORD}'"
+echo "  - claude: autologin enabled, sudo will be configured during onboarding"
+echo ""
 if [ -n "$ANTHROPIC_API_KEY" ]; then
     log "Authentication: API key included in build (onboarding skipped)"
 else
     log "Authentication: Will be configured via first-boot onboarding"
 fi
+echo ""
+log "First boot onboarding will configure:"
+echo "  1. Partition size (auto-expand, custom size, or keep current)"
+echo "  2. Sudo access (passwordless or password-required)"
+echo "  3. Anthropic authentication (browser sign-in or API key)"
 if [ "$BUILD_WITH_BYPASS" = "yes" ]; then
     echo ""
     log "⚠️  PERMISSION BYPASS MODE ENABLED - Claude will run with full automation"
@@ -468,5 +466,4 @@ echo ""
 log "Build options:"
 echo "  - Include API key: ANTHROPIC_API_KEY=sk-ant-... sudo -E ./build.sh"
 echo "  - Skip disk image: CREATE_DISK_IMAGE=no sudo ./build.sh"
-echo "  - Require sudo password: PASSWORDLESS_SUDO=no sudo ./build.sh"
 echo "  - Permission bypass: BUILD_WITH_BYPASS=yes sudo ./build.sh"

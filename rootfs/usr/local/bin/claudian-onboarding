@@ -110,7 +110,69 @@ while true; do
     esac
 done
 
-# --- Step 2: Authentication Setup ---
+# --- Step 2: Sudo Configuration ---
+clear
+cat << 'EOF'
+╔════════════════════════════════════════════════════════════════╗
+║                   Security Configuration                       ║
+╚════════════════════════════════════════════════════════════════╝
+
+EOF
+
+echo "Configure sudo access for the claude user."
+echo ""
+echo "Choose your preference:"
+echo ""
+echo "  1) Passwordless sudo (recommended for automation)"
+echo "     Claude can run system commands without entering a password"
+echo ""
+echo "  2) Require password for sudo"
+echo "     You'll need to set a password and enter it when Claude needs sudo"
+echo ""
+
+while true; do
+    read -p "Enter choice [1 or 2]: " sudo_choice
+    case $sudo_choice in
+        1)
+            # Passwordless sudo - ensure sudoers file exists
+            echo ""
+            echo "Configuring passwordless sudo..."
+
+            if [ ! -f /etc/sudoers.d/claude ]; then
+                echo "claude ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/claude > /dev/null
+                sudo chmod 0440 /etc/sudoers.d/claude
+            fi
+
+            echo "✓ Passwordless sudo enabled"
+            echo ""
+            sleep 1
+            break
+            ;;
+        2)
+            # Password-required sudo
+            echo ""
+            echo "Setting up password for claude user..."
+
+            # Remove passwordless sudoers file if it exists
+            sudo rm -f /etc/sudoers.d/claude
+
+            # Set password for claude user
+            echo "Please enter a password for the claude user:"
+            sudo passwd claude
+
+            echo ""
+            echo "✓ Password configured. You'll need to enter this when Claude uses sudo."
+            echo ""
+            sleep 1
+            break
+            ;;
+        *)
+            echo "Invalid choice. Please enter 1 or 2."
+            ;;
+    esac
+done
+
+# --- Step 3: Authentication Setup ---
 clear
 cat << 'EOF'
 ╔════════════════════════════════════════════════════════════════╗
