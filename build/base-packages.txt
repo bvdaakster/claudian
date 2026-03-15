@@ -33,9 +33,7 @@ kitty
 # Browser
 chromium
 
-# Node (for MCP server + Claude Code)
-nodejs
-npm
+# Node.js - installed via NodeSource in Phase 5 (not from Debian repos)
 
 # Claude Code
 # Install via npm after base is up: npm install -g @anthropic-ai/claude-code

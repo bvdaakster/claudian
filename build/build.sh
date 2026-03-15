@@ -151,16 +151,18 @@ success "Base packages installed"
 log "Phase 4: Chromium should be installed via base packages"
 success "Chromium configuration complete"
 
-# --- Phase 5: Install Node.js ---
-log "Phase 5: Installing Node.js..."
+# --- Phase 5: Install Node.js 22 LTS ---
+log "Phase 5: Installing Node.js 22 LTS via NodeSource..."
 cat > "$DEBIAN_ROOT/tmp/install-node.sh" <<'EOF'
 #!/bin/bash
 set -e
 
-# Node.js should be available via apt on Debian 12
-# If you need a newer version, use NodeSource:
-# curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-# apt-get install -y nodejs
+# Remove Debian's older Node.js if installed
+apt-get remove -y nodejs npm 2>/dev/null || true
+
+# Install Node.js 22 LTS from NodeSource
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt-get install -y nodejs
 
 # Verify installation
 node --version
