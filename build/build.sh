@@ -101,6 +101,16 @@ fi
 log "Phase 2: Copying configuration overlay..."
 rsync -av --exclude='.gitkeep' "$ROOTFS_OVERLAY/" "$DEBIAN_ROOT/"
 
+# Fix ownership - rsync copies with local UID, but system files must be owned by root
+chown -R root:root "$DEBIAN_ROOT/etc/"
+chown -R root:root "$DEBIAN_ROOT/usr/"
+
+# Fix sudoers permissions (must be 0440 and owned by root)
+if [ -f "$DEBIAN_ROOT/etc/sudoers.d/claude" ]; then
+    chmod 0440 "$DEBIAN_ROOT/etc/sudoers.d/claude"
+    chown root:root "$DEBIAN_ROOT/etc/sudoers.d/claude"
+fi
+
 # Copy extra packages list for onboarding installation
 mkdir -p "$DEBIAN_ROOT/opt/claudian"
 cp "$BUILD_DIR/extra-packages.txt" "$DEBIAN_ROOT/opt/claudian/"
