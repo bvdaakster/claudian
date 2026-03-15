@@ -243,7 +243,11 @@ cat > "$DEBIAN_ROOT/tmp/create-claude-user.sh" <<'EOF'
 set -e
 
 # Create claude user with home directory
-useradd -m -s /bin/bash -G sudo,docker claude
+useradd -m -s /bin/bash -G sudo claude
+
+# Add to docker group if it exists (docker may be installed later)
+groupadd -f docker 2>/dev/null || true
+usermod -aG docker claude 2>/dev/null || true
 
 # Set proper permissions on sudoers file (will be configured during onboarding)
 if [ -f /etc/sudoers.d/claude ]; then
