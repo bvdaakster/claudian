@@ -37,6 +37,39 @@ error() {
     exit 1
 }
 
+# --- Cleanup trap ---
+# Ensures all mounts and loop devices are cleaned up on exit, error, or Ctrl+C
+cleanup() {
+    local exit_code=$?
+    log "Cleaning up mounts and loop devices..."
+
+    # Unmount disk image mount point
+    MOUNT_POINT="$BUILD_DIR/mnt"
+    umount "$MOUNT_POINT/dev/pts" 2>/dev/null || true
+    umount "$MOUNT_POINT/dev" 2>/dev/null || true
+    umount "$MOUNT_POINT/sys" 2>/dev/null || true
+    umount "$MOUNT_POINT/proc" 2>/dev/null || true
+    umount "$MOUNT_POINT" 2>/dev/null || true
+
+    # Unmount chroot filesystems
+    umount "$DEBIAN_ROOT/dev/pts" 2>/dev/null || true
+    umount "$DEBIAN_ROOT/dev" 2>/dev/null || true
+    umount "$DEBIAN_ROOT/sys" 2>/dev/null || true
+    umount "$DEBIAN_ROOT/proc" 2>/dev/null || true
+
+    # Detach loop devices associated with our image
+    if [ -n "$LOOP_DEV" ]; then
+        kpartx -d "$LOOP_DEV" 2>/dev/null || true
+        losetup -d "$LOOP_DEV" 2>/dev/null || true
+    fi
+
+    if [ $exit_code -ne 0 ]; then
+        echo ""
+        error "Build failed! All mounts have been cleaned up safely."
+    fi
+}
+trap cleanup EXIT
+
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
     error "Please run as root (required for debootstrap and chroot)"
@@ -68,6 +101,7 @@ log "Phase 2: Copying configuration overlay..."
 rsync -av --exclude='.gitkeep' "$ROOTFS_OVERLAY/" "$DEBIAN_ROOT/"
 
 # Copy extra packages list for onboarding installation
+mkdir -p "$DEBIAN_ROOT/opt/claudian"
 cp "$BUILD_DIR/extra-packages.txt" "$DEBIAN_ROOT/opt/claudian/"
 success "Configuration overlay applied"
 
@@ -286,8 +320,8 @@ fi
 
 success "Build configuration complete"
 
-# Unmount filesystems
-log "Unmounting filesystems..."
+# Unmount chroot filesystems before creating disk image
+log "Unmounting chroot filesystems..."
 umount "$DEBIAN_ROOT/dev/pts" 2>/dev/null || true
 umount "$DEBIAN_ROOT/dev" 2>/dev/null || true
 umount "$DEBIAN_ROOT/sys" 2>/dev/null || true
@@ -406,17 +440,18 @@ EOF
     chmod +x "$MOUNT_POINT/tmp/install-grub.sh"
     chroot "$MOUNT_POINT" /tmp/install-grub.sh
 
-    # Cleanup
-    log "Cleaning up mounts..."
+    # Cleanup disk image mounts (trap will also catch these if we fail)
+    log "Cleaning up disk image mounts..."
     sync
     umount "$MOUNT_POINT/dev/pts" 2>/dev/null || true
     umount "$MOUNT_POINT/dev" 2>/dev/null || true
     umount "$MOUNT_POINT/sys" 2>/dev/null || true
     umount "$MOUNT_POINT/proc" 2>/dev/null || true
-    umount "$MOUNT_POINT"
-    kpartx -d "$LOOP_DEV"
-    losetup -d "$LOOP_DEV"
-    rmdir "$MOUNT_POINT"
+    umount "$MOUNT_POINT" 2>/dev/null || true
+    kpartx -d "$LOOP_DEV" 2>/dev/null || true
+    losetup -d "$LOOP_DEV" 2>/dev/null || true
+    LOOP_DEV=""  # Clear so trap doesn't try again
+    rmdir "$MOUNT_POINT" 2>/dev/null || true
 
     success "Bootable disk image created: $DISK_IMAGE"
     log "You can write this to a USB drive with: sudo dd if=$DISK_IMAGE of=/dev/sdX bs=4M status=progress"

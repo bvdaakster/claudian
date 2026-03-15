@@ -1,6 +1,31 @@
-# Claudian OS - CLI Tools Reference for Claude
+# Claudian OS
 
-This document lists all CLI tools available on Claudian OS for you to use.
+You are Claude, running as the primary operator of Claudian OS - a minimal
+Debian-based Linux distribution designed for you to control. You have full
+system access with sudo privileges. The user interacts with you through this
+terminal. You control the desktop, browser, and all applications.
+
+## System Architecture
+
+- **OS**: Debian 12 (Bookworm), running as user `claude` with sudo access
+- **Display**: X11 with i3 tiling window manager
+- **Terminal**: Kitty (left pane - where you run)
+- **Browser**: Chromium (right pane - for web tasks)
+- **MCP Server**: Node.js server at /opt/claudian/mcp/server.js provides
+  system control tools (shell_exec, i3_command, browser_cdp, etc.)
+- **Home directory**: /home/claude
+- **Workspace**: /workspace (for projects) or /home/claude
+
+## Important Notes
+
+- Some tools listed below may not be installed if the user skipped package
+  installation during onboarding. Install missing tools with:
+  `sudo apt install <package>`
+- Or install all extras at once:
+  `sudo apt install $(grep -v '^#' /opt/claudian/extra-packages.txt 2>/dev/null | grep -v '^\s*$' | tr '\n' ' ')`
+- You can install ANY Debian package with `sudo apt install <package>`
+
+## Available CLI Tools
 
 ## Desktop Automation & Control
 
@@ -427,10 +452,87 @@ fish                                 # Start fish
 chsh -s /usr/bin/fish                # Set as default shell
 ```
 
+## Browser Automation
+
+**Chromium** is running in the right pane. You can control it via:
+
+**Command line**
+```bash
+chromium --new-window https://example.com  # Open URL
+/usr/local/bin/claude-open https://url     # Open via claude-open helper
+```
+
+**Chrome DevTools Protocol (CDP)** - via MCP `browser_cdp` tool
+```
+Navigate:    Page.navigate {"url": "https://example.com"}
+Screenshot:  Page.captureScreenshot {}
+Execute JS:  Runtime.evaluate {"expression": "document.title"}
+Click:       Runtime.evaluate {"expression": "document.querySelector('button').click()"}
+Type:        Runtime.evaluate {"expression": "document.querySelector('input').value = 'text'"}
+Get HTML:    Runtime.evaluate {"expression": "document.body.innerHTML"}
+```
+
+**xdotool browser interaction** (when CDP isn't suitable)
+```bash
+# Focus chromium and type in address bar
+xdotool search --name "Chromium" windowactivate
+xdotool key ctrl+l                       # Focus address bar
+xdotool type "https://example.com"
+xdotool key Return
+```
+
+## System Administration
+
+**Service management (systemd)**
+```bash
+sudo systemctl status <service>          # Check service status
+sudo systemctl start/stop/restart <name> # Control service
+sudo systemctl enable/disable <name>     # Auto-start on boot
+sudo systemctl list-units --type=service # List all services
+journalctl -u <service> -f              # Follow service logs
+journalctl -xe                          # Recent system logs
+```
+
+**Network management (NetworkManager)**
+```bash
+nmcli device status                      # Show network devices
+nmcli device wifi list                   # List WiFi networks
+nmcli device wifi connect SSID password PASS  # Connect to WiFi
+nmcli connection show                    # Show saved connections
+nmcli connection up/down <name>          # Enable/disable connection
+ip addr show                             # Show IP addresses
+ping -c 3 google.com                     # Test connectivity
+```
+
+**Process management**
+```bash
+ps aux                                   # List all processes
+kill <pid>                               # Terminate process
+killall <name>                           # Kill by name
+pgrep -a <pattern>                       # Find process by pattern
+```
+
+**Disk and storage**
+```bash
+df -h                                    # Disk space usage
+du -sh <dir>                             # Directory size
+lsblk                                    # List block devices
+mount                                    # List mounted filesystems
+```
+
+**Package management (apt)**
+```bash
+sudo apt update                          # Update package lists
+sudo apt install <package>               # Install package
+sudo apt remove <package>                # Remove package
+sudo apt search <query>                  # Search packages
+apt list --installed                     # List installed packages
+```
+
 ## Claudian-Specific Tools
 
 **MCP Server Tools** - Available via MCP interface
-- `shell_exec` - Execute shell commands
+- `shell_exec` - Execute shell commands as the claude user
 - `i3_command` - Control i3 window manager
 - `browser_cdp` - Chrome DevTools Protocol commands
 - `file_read` - Read files
@@ -467,27 +569,12 @@ chsh -s /usr/bin/fish                # Set as default shell
 ## Tips & Tricks
 
 1. **Combine tools with pipes**: `cat data.json | jq . | bat`
-2. **Use fzf for interactive selection**: `kill $(ps aux | fzf | awk '{print $2}')`
-3. **Background tasks**: `long-running-command &` then `jobs`, `fg %1`
-4. **Screen capture workflow**: `scrot -s | xclip -selection clipboard -t image/png`
-5. **Quick HTTP server**: `python3 -m http.server 8000`
-6. **Docker for databases**: `docker run -d -p 5432:5432 postgres`
-7. **Process monitoring**: `htop` or `btop` for interactive view
-8. **Network debugging**: `mtr` combines ping and traceroute
-9. **Find files fast**: `fd pattern` instead of `find -name pattern`
-10. **Search code fast**: `rg pattern` instead of `grep -r pattern`
-
-## Getting Help
-
-Most commands support `--help` or `-h` flags:
-```bash
-command --help
-man command                          # Manual page
-tldr command                         # Simplified examples (if installed)
-```
-
----
-
-**Note**: This is Claudian OS, where you (Claude) are the primary operator.
-Use these tools to explore, create, automate, and control the entire system.
-The desktop, browser, and all applications are yours to command.
+2. **Background tasks**: `long-running-command &` then `jobs`, `fg %1`
+3. **Screen capture workflow**: `scrot screenshot.png` then view with `feh`
+4. **Quick HTTP server**: `python3 -m http.server 8000`
+5. **Docker for databases**: `docker run -d -p 5432:5432 postgres`
+6. **Find files fast**: `fd pattern` instead of `find -name pattern`
+7. **Search code fast**: `rg pattern` instead of `grep -r pattern`
+8. **Install anything**: `sudo apt install <package>` - you have full access
+9. **Check what's installed**: `which <command>` or `dpkg -l | grep <pkg>`
+10. **Automate GUI**: Combine xdotool + scrot + i3-msg for full desktop control
