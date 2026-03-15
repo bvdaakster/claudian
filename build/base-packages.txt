@@ -25,6 +25,16 @@ x11-xserver-utils
 xinit
 xterm
 
+# Desktop automation & control
+xdotool
+wmctrl
+xautomation
+xclip
+xsel
+xinput
+xbindkeys
+xvkbd
+
 # Terminal
 kitty
 
