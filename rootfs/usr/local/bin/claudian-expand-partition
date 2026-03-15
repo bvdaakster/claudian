@@ -1,17 +1,28 @@
 #!/bin/bash
 #==============================================================================
 # Claudian Auto-Expand Partition
-# Expands the root partition to fill available disk space on first boot
+# Expands the root partition on first boot
+# Usage: claudian-expand-partition [auto|SIZE|skip]
+#   auto - Expand to fill entire disk (default)
+#   SIZE - Expand to specific size (e.g., 20G, 50G)
+#   skip - Don't expand
 #==============================================================================
 
 EXPANSION_FLAG="/root/.claudian-partition-expanded"
+MODE="${1:-auto}"
 
 # Check if already expanded
 if [ -f "$EXPANSION_FLAG" ]; then
     exit 0
 fi
 
-# Only run if we're on a real disk (not in a VM with existing full partition)
+# Skip mode
+if [ "$MODE" = "skip" ]; then
+    touch "$EXPANSION_FLAG"
+    exit 0
+fi
+
+# Get root device info
 ROOT_DEV=$(findmnt -n -o SOURCE /)
 if [ -z "$ROOT_DEV" ]; then
     echo "Could not determine root device"
@@ -22,20 +33,64 @@ fi
 DISK_DEV=$(echo "$ROOT_DEV" | sed 's/[0-9]*$//')
 PART_NUM=$(echo "$ROOT_DEV" | grep -o '[0-9]*$')
 
-echo "Expanding partition on $ROOT_DEV (disk: $DISK_DEV, partition: $PART_NUM)..."
+echo "Partition: $ROOT_DEV (disk: $DISK_DEV, partition: $PART_NUM)"
 
-# Use growpart to expand the partition
-if command -v growpart >/dev/null 2>&1; then
-    growpart "$DISK_DEV" "$PART_NUM" 2>/dev/null || echo "Partition already at maximum size"
+# Auto-expand to fill disk
+if [ "$MODE" = "auto" ]; then
+    echo "Auto-expanding to fill entire drive..."
+
+    # Use growpart to expand the partition to maximum
+    if command -v growpart >/dev/null 2>&1; then
+        if growpart "$DISK_DEV" "$PART_NUM" 2>/dev/null; then
+            echo "✓ Partition expanded to maximum size"
+        else
+            echo "Partition already at maximum size or expansion failed"
+        fi
+    else
+        echo "growpart not available, skipping partition expansion"
+    fi
+
+    # Resize the filesystem
+    if [ -n "$ROOT_DEV" ]; then
+        echo "Resizing filesystem..."
+        if resize2fs "$ROOT_DEV" 2>/dev/null; then
+            echo "✓ Filesystem resized"
+        else
+            echo "Filesystem resize skipped or failed"
+        fi
+    fi
+
 else
-    echo "growpart not available, skipping partition expansion"
-fi
+    # Custom size expansion
+    echo "Expanding to custom size: $MODE..."
 
-# Resize the filesystem
-if [ -n "$ROOT_DEV" ]; then
-    resize2fs "$ROOT_DEV" 2>/dev/null || echo "Filesystem resize skipped or failed"
+    # Convert size to sectors (parted uses sectors)
+    # Note: This is a simplified approach - parted can handle sizes directly
+    if command -v parted >/dev/null 2>&1; then
+        # Use parted to resize partition to specific size
+        parted "$DISK_DEV" resizepart "$PART_NUM" "$MODE" 2>/dev/null || \
+            echo "Custom resize failed - may already be at or above requested size"
+
+        # Resize the filesystem
+        if [ -n "$ROOT_DEV" ]; then
+            echo "Resizing filesystem..."
+            resize2fs "$ROOT_DEV" 2>/dev/null || echo "Filesystem resize skipped"
+        fi
+    else
+        echo "parted not available, falling back to auto-expand"
+        if command -v growpart >/dev/null 2>&1; then
+            growpart "$DISK_DEV" "$PART_NUM" 2>/dev/null
+            resize2fs "$ROOT_DEV" 2>/dev/null
+        fi
+    fi
 fi
 
 # Mark as complete
 touch "$EXPANSION_FLAG"
-echo "Partition expansion complete!"
+echo "Partition configuration complete!"
+
+# Show final size
+if [ -n "$ROOT_DEV" ]; then
+    FINAL_SIZE=$(df -h / | tail -1 | awk '{print $2}')
+    echo "Final partition size: $FINAL_SIZE"
+fi

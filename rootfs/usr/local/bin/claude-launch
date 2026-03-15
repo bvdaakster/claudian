@@ -2,8 +2,7 @@
 # Runs inside the left-pane kitty terminal on startup
 # Sets up the environment and starts claude-code
 
-# Expand partition on first boot (silent, runs once)
-/usr/local/bin/claudian-expand-partition 2>/dev/null &
+# Note: Partition expansion is now handled in onboarding wizard
 
 # Run first-boot onboarding if needed
 /usr/local/bin/claudian-onboarding

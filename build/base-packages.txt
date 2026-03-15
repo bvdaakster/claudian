@@ -12,6 +12,7 @@ git
 vim
 cloud-utils
 e2fsprogs
+parted
 
 # X11 + i3
 xorg
