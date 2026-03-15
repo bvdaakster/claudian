@@ -49,6 +49,7 @@ cleanup() {
     umount "$MOUNT_POINT/dev" 2>/dev/null || true
     umount "$MOUNT_POINT/sys" 2>/dev/null || true
     umount "$MOUNT_POINT/proc" 2>/dev/null || true
+    umount "$MOUNT_POINT/boot/efi" 2>/dev/null || true
     umount "$MOUNT_POINT" 2>/dev/null || true
 
     # Unmount chroot filesystems
@@ -277,10 +278,11 @@ ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 EOF
 
-# Create fstab (basic version for VM)
+# Create fstab (basic version - will be updated with UUIDs for disk image)
 cat > "$DEBIAN_ROOT/etc/fstab" <<EOF
 # Claudian fstab
-/dev/sda1    /           ext4    errors=remount-ro    0    1
+/dev/sda2    /           ext4    errors=remount-ro    0    1
+/dev/sda1    /boot/efi   vfat    umask=0077           0    1
 proc         /proc       proc    defaults             0    0
 sysfs        /sys        sysfs   defaults             0    0
 devpts       /dev/pts    devpts  defaults             0    0
@@ -363,11 +365,14 @@ if [ "$CREATE_DISK_IMAGE" = "yes" ]; then
     LOOP_DEV=$(losetup -f)
     losetup "$LOOP_DEV" "$DISK_IMAGE"
 
-    # Partition the disk (single bootable ext4 partition)
-    log "Partitioning disk..."
-    parted -s "$LOOP_DEV" mklabel msdos
-    parted -s "$LOOP_DEV" mkpart primary ext4 1MiB 100%
-    parted -s "$LOOP_DEV" set 1 boot on
+    # Partition the disk with GPT for UEFI boot
+    # Partition 1: EFI System Partition (512MB, FAT32)
+    # Partition 2: Root filesystem (ext4, rest of disk)
+    log "Partitioning disk (GPT/UEFI)..."
+    parted -s "$LOOP_DEV" mklabel gpt
+    parted -s "$LOOP_DEV" mkpart ESP fat32 1MiB 513MiB
+    parted -s "$LOOP_DEV" set 1 esp on
+    parted -s "$LOOP_DEV" mkpart root ext4 513MiB 100%
 
     # Inform kernel of partition changes
     partprobe "$LOOP_DEV" 2>/dev/null || true
@@ -377,43 +382,53 @@ if [ "$CREATE_DISK_IMAGE" = "yes" ]; then
     kpartx -a "$LOOP_DEV"
     sleep 1
 
-    # Find the partition device
+    # Find the partition devices
     LOOP_NAME=$(basename "$LOOP_DEV")
-    PART_DEV="/dev/mapper/${LOOP_NAME}p1"
+    EFI_DEV="/dev/mapper/${LOOP_NAME}p1"
+    ROOT_DEV="/dev/mapper/${LOOP_NAME}p2"
 
-    # Wait for partition device to appear
+    # Wait for partition devices to appear
     for i in {1..10}; do
-        if [ -b "$PART_DEV" ]; then
+        if [ -b "$EFI_DEV" ] && [ -b "$ROOT_DEV" ]; then
             break
         fi
         sleep 1
     done
 
-    if [ ! -b "$PART_DEV" ]; then
-        error "Partition device $PART_DEV not found"
+    if [ ! -b "$ROOT_DEV" ]; then
+        error "Partition device $ROOT_DEV not found"
     fi
 
-    # Format partition
-    log "Formatting partition..."
-    mkfs.ext4 -F "$PART_DEV"
+    # Format partitions
+    log "Formatting partitions..."
+    mkfs.fat -F32 "$EFI_DEV"
+    mkfs.ext4 -F "$ROOT_DEV"
 
-    # Mount partition
+    # Mount root partition
     MOUNT_POINT="$BUILD_DIR/mnt"
     mkdir -p "$MOUNT_POINT"
-    mount "$PART_DEV" "$MOUNT_POINT"
+    mount "$ROOT_DEV" "$MOUNT_POINT"
+
+    # Mount EFI partition
+    mkdir -p "$MOUNT_POINT/boot/efi"
+    mount "$EFI_DEV" "$MOUNT_POINT/boot/efi"
 
     # Copy rootfs to disk
     log "Copying root filesystem to disk (this may take a while)..."
     rsync -aAX --info=progress2 "$DEBIAN_ROOT/" "$MOUNT_POINT/"
 
-    # Update fstab for the disk image
+    # Update fstab for the disk image (use UUIDs for reliability)
+    ROOT_UUID=$(blkid -s UUID -o value "$ROOT_DEV")
+    EFI_UUID=$(blkid -s UUID -o value "$EFI_DEV")
+
     cat > "$MOUNT_POINT/etc/fstab" <<EOF
 # Claudian fstab for disk image
-/dev/sda1    /           ext4    errors=remount-ro    0    1
-proc         /proc       proc    defaults             0    0
-sysfs        /sys        sysfs   defaults             0    0
-devpts       /dev/pts    devpts  defaults             0    0
-tmpfs        /tmp        tmpfs   defaults             0    0
+UUID=$ROOT_UUID    /           ext4    errors=remount-ro    0    1
+UUID=$EFI_UUID     /boot/efi   vfat    umask=0077           0    1
+proc               /proc       proc    defaults             0    0
+sysfs              /sys        sysfs   defaults             0    0
+devpts             /dev/pts    devpts  defaults             0    0
+tmpfs              /tmp        tmpfs   defaults             0    0
 EOF
 
     # Mount necessary filesystems for GRUB installation
@@ -422,23 +437,23 @@ EOF
     mount -o bind /dev "$MOUNT_POINT/dev"
     mount -o bind /dev/pts "$MOUNT_POINT/dev/pts"
 
-    # Install GRUB bootloader
-    log "Installing GRUB bootloader..."
-    cat > "$MOUNT_POINT/tmp/install-grub.sh" <<EOF
+    # Install GRUB EFI bootloader
+    log "Installing GRUB EFI bootloader..."
+    cat > "$MOUNT_POINT/tmp/install-grub.sh" <<'EOF'
 #!/bin/bash
 set -e
 
-# Install grub packages if not already installed
+# Install grub EFI packages if not already installed
 apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install -y grub-pc linux-image-amd64
+DEBIAN_FRONTEND=noninteractive apt-get install -y grub-efi-amd64 efibootmgr linux-image-amd64 dosfstools
 
-# Install GRUB to the disk
-grub-install --target=i386-pc --boot-directory=/boot $LOOP_DEV
+# Install GRUB for EFI (removable flag makes it work on any UEFI system without NVRAM entry)
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=claudian --removable --no-nvram
 
 # Generate GRUB config
 update-grub
 
-echo "GRUB installed successfully"
+echo "GRUB EFI installed successfully"
 EOF
 
     chmod +x "$MOUNT_POINT/tmp/install-grub.sh"
@@ -451,6 +466,7 @@ EOF
     umount "$MOUNT_POINT/dev" 2>/dev/null || true
     umount "$MOUNT_POINT/sys" 2>/dev/null || true
     umount "$MOUNT_POINT/proc" 2>/dev/null || true
+    umount "$MOUNT_POINT/boot/efi" 2>/dev/null || true
     umount "$MOUNT_POINT" 2>/dev/null || true
     kpartx -d "$LOOP_DEV" 2>/dev/null || true
     losetup -d "$LOOP_DEV" 2>/dev/null || true

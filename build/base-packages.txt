@@ -1,6 +1,8 @@
 # Core (essential for boot)
 linux-image-amd64
-grub-pc
+grub-efi-amd64
+efibootmgr
+dosfstools
 systemd
 udev
 network-manager
