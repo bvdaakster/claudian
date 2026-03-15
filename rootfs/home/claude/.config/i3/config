@@ -7,14 +7,11 @@ set $term kitty
 set $left_pane exec kitty --class claude-terminal -e claude-launch
 set $right_pane exec chromium --app=about:blank \
   --remote-debugging-port=9222 \
-  --auto-open-devtools-for-tabs \
   --no-first-run \
   --disable-sync \
-  --no-sandbox \
-  --disable-setuid-sandbox \
+  --test-type \
   --force-device-scale-factor=2 \
   --window-size=1920,1080
-# --no-sandbox is required when running as root  Chromium refuses to start without it
 
 # Font (HiDPI  adjust size)
 font pango:DejaVu Sans Mono 11
