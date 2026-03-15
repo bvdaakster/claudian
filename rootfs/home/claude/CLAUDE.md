@@ -188,14 +188,10 @@ tcpdump -w capture.pcap              # Write to file
 
 **pandoc** - Universal document converter
 ```bash
-pandoc input.md -o output.pdf        # Markdown to PDF
 pandoc input.md -o output.html       # Markdown to HTML
+pandoc input.md -o output.docx       # Markdown to Word
 pandoc input.docx -o output.md       # Word to Markdown
-```
-
-**LaTeX**
-```bash
-pdflatex document.tex                # Compile LaTeX to PDF
+# Note: PDF generation requires LaTeX (install: sudo apt install texlive-latex-base)
 ```
 
 **ImageMagick (convert, identify)** - Image manipulation
@@ -310,20 +306,6 @@ rclone ls remote:path                # List remote files
 
 ## Graphics & Media
 
-**GIMP** - Image editing
-```bash
-gimp                                 # Launch GUI
-gimp image.jpg                       # Open image
-gimp -i -b '(batch-commands)' -b '(gimp-quit 0)'  # Batch mode
-```
-
-**Inkscape** - Vector graphics
-```bash
-inkscape                             # Launch GUI
-inkscape file.svg -o output.png      # SVG to PNG
-inkscape file.svg -o output.pdf      # SVG to PDF
-```
-
 **mpv** - Media player
 ```bash
 mpv video.mp4                        # Play video
@@ -340,17 +322,12 @@ feh -r directory/                    # View all in dir
 
 ## AI/ML & Data Science
 
-**Jupyter Notebook**
-```bash
-jupyter notebook                     # Start notebook server
-jupyter notebook --no-browser        # Start without browser
-```
-
 **Python Data Science Tools**
 ```bash
 python3 -c "import numpy as np; print(np.array([1,2,3]))"
 python3 -c "import pandas as pd; df = pd.read_csv('data.csv')"
 python3 -c "import matplotlib.pyplot as plt"
+# Note: For Jupyter notebooks: sudo apt install jupyter-notebook
 ```
 
 **gnuplot** - Plotting tool
@@ -359,10 +336,13 @@ gnuplot                              # Interactive mode
 gnuplot -e "plot sin(x); pause -1"   # Quick plot
 ```
 
-**R** - Statistical computing
+**Additional tools** (install as needed)
 ```bash
-R                                    # Start R interpreter
-Rscript script.R                     # Run R script
+sudo apt install jupyter-notebook    # Interactive Python notebooks
+sudo apt install r-base              # R statistical computing
+sudo apt install texlive-latex-base  # LaTeX for document generation
+sudo apt install gimp                # Image editing
+sudo apt install inkscape            # Vector graphics
 ```
 
 ## Version Control & Collaboration

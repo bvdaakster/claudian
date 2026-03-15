@@ -82,7 +82,6 @@ tcpdump
 
 # Text & Document Processing
 pandoc
-texlive-latex-base
 imagemagick
 ffmpeg
 poppler-utils
@@ -102,19 +101,15 @@ rsync
 rclone
 
 # Graphics & Media
-gimp
-inkscape
 mpv
 scrot
 feh
 
 # AI/ML & Data Science
-jupyter-notebook
 python3-numpy
 python3-pandas
 python3-matplotlib
 gnuplot
-r-base
 
 # Version Control & Collaboration
 git-lfs
