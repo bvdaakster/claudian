@@ -572,8 +572,8 @@ fi
 echo ""
 log "First boot onboarding will configure:"
 echo "  1. Network connectivity (WiFi setup or skip for ethernet)"
-echo "  2. Extra packages (install dev tools, CLI utils, etc.)"
-echo "  3. Partition size (auto-expand, custom size, or keep current)"
+echo "  2. Partition size (auto-expand, custom size, or keep current)"
+echo "  3. Extra packages (install dev tools, CLI utils, etc.)"
 echo "  4. Sudo access (passwordless or password-required)"
 echo "  5. Anthropic authentication (browser sign-in or API key)"
 if [ "$BUILD_WITH_BYPASS" = "yes" ]; then
