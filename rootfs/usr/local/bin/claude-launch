@@ -17,12 +17,21 @@ export CLAUDE_WM_TOOL=/usr/local/bin/claude-open
 
 cd /workspace 2>/dev/null || cd ~
 
+# Launch Chromium in the right pane (after onboarding, so user has full terminal during setup)
+i3-msg "split h; exec chromium --app=about:blank \
+  --remote-debugging-port=9222 \
+  --no-first-run \
+  --disable-sync \
+  --test-type \
+  --force-device-scale-factor=2 \
+  --window-size=1920,1080" &
+
 # Start MCP server in background
 node /opt/claudian/mcp/server.js &
 MCP_PID=$!
 
-# Give MCP server a moment
-sleep 1
+# Give MCP server and browser a moment to start
+sleep 2
 
 # Configurable Claude command - set CLAUDE_CMD in /etc/environment to customize
 # Example: export CLAUDE_CMD="claude --allow-dangerously-skip-permissions --permission-mode bypassPermissions"

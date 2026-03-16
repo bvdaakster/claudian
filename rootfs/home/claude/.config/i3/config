@@ -156,6 +156,5 @@ workspace $ws1 gaps inner 8
 assign [class="claude-terminal"] $ws1
 assign [class="Chromium"] $ws1
 
-# Startup layout: left 50% terminal, right 50% browser
+# Startup: only launch terminal, browser is launched by claude-launch after onboarding
 exec --no-startup-id $left_pane
-exec --no-startup-id sleep 2 && $right_pane
