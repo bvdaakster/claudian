@@ -1,0 +1,107 @@
+name: Build Claudian
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      flavors:
+        description: 'Flavors to build (comma-separated: standard,bypass,nonfree,bypass-nonfree)'
+        required: false
+        default: 'standard,bypass,nonfree,bypass-nonfree'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flavor: standard
+            bypass: "no"
+            nonfree: "no"
+            suffix: ""
+          - flavor: bypass
+            bypass: "yes"
+            nonfree: "no"
+            suffix: "-bypass"
+          - flavor: nonfree
+            bypass: "no"
+            nonfree: "yes"
+            suffix: "-nonfree"
+          - flavor: bypass-nonfree
+            bypass: "yes"
+            nonfree: "yes"
+            suffix: "-bypass-nonfree"
+
+    name: Build ${{ matrix.flavor }}
+
+    steps:
+      - name: Check if flavor is selected
+        if: >-
+          github.event_name != 'workflow_dispatch' ||
+          contains(github.event.inputs.flavors, matrix.flavor)
+        id: should-run
+        run: echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        if: steps.should-run.outputs.run == 'true'
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        if: steps.should-run.outputs.run == 'true'
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          sudo apt-get clean
+          df -h /
+
+      - name: Install build dependencies
+        if: steps.should-run.outputs.run == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debootstrap parted kpartx rsync dosfstools
+
+      - name: Build Claudian (${{ matrix.flavor }})
+        if: steps.should-run.outputs.run == 'true'
+        run: |
+          sudo BUILD_WITH_BYPASS=${{ matrix.bypass }} \
+               INCLUDE_NONFREE_FIRMWARE=${{ matrix.nonfree }} \
+               CREATE_DISK_IMAGE=yes \
+               -E ./build/build.sh <<< ""
+
+      - name: Compress disk image
+        if: steps.should-run.outputs.run == 'true'
+        run: |
+          xz -T0 -9 build/claudian.img
+          mv build/claudian.img.xz "build/claudian${{ matrix.suffix }}.img.xz"
+          ls -lh build/claudian*.img.xz
+
+      - name: Upload artifact
+        if: steps.should-run.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: claudian${{ matrix.suffix }}
+          path: build/claudian${{ matrix.suffix }}.img.xz
+          compression-level: 0
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*.img.xz
+          generate_release_notes: true

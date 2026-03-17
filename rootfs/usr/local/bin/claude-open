@@ -5,12 +5,22 @@
 ACTION="$1"
 TARGET="$2"
 
+# Chromium flags for consistent DPI and behavior
+CHROMIUM_FLAGS="--force-device-scale-factor=2 --no-first-run --disable-sync"
+
 case "$ACTION" in
   terminal)
     i3-msg "split h; exec kitty"
     ;;
   browser)
-    i3-msg "split h; exec chromium \"${TARGET:-about:blank}\""
+    # If chromium is already running, open URL in existing instance
+    if pgrep -x chromium >/dev/null 2>&1; then
+      if [ -n "$TARGET" ]; then
+        chromium "$TARGET" &
+      fi
+    else
+      i3-msg "split h; exec chromium $CHROMIUM_FLAGS \"${TARGET:-about:blank}\""
+    fi
     ;;
   workspace)
     i3-msg "workspace ${TARGET:-2}"

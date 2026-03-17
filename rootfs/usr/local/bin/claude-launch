@@ -4,6 +4,21 @@
 
 # Note: Partition expansion is now handled in onboarding wizard
 
+# Chromium flags (shared between launch and claude-open)
+CHROMIUM_FLAGS="--force-device-scale-factor=2 --no-first-run --disable-sync --test-type"
+
+# Launch Chromium in the right pane BEFORE onboarding so claude auth login can use it
+i3-msg "split h; exec chromium --app=about:blank \
+  --remote-debugging-port=9222 \
+  $CHROMIUM_FLAGS \
+  --window-size=1920,1080" &
+
+# Give the browser a moment to start before onboarding might need it
+sleep 2
+
+# Set BROWSER so claude auth login opens URLs in the existing chromium instance
+export BROWSER=/usr/local/bin/claude-open-url
+
 # Run first-boot onboarding if needed
 /usr/local/bin/claudian-onboarding
 
@@ -16,15 +31,6 @@ export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"  # set in /etc/environment or du
 export CLAUDE_WM_TOOL=/usr/local/bin/claude-open
 
 cd /workspace 2>/dev/null || cd ~
-
-# Launch Chromium in the right pane (after onboarding, so user has full terminal during setup)
-i3-msg "split h; exec chromium --app=about:blank \
-  --remote-debugging-port=9222 \
-  --no-first-run \
-  --disable-sync \
-  --test-type \
-  --force-device-scale-factor=2 \
-  --window-size=1920,1080" &
 
 # Start MCP server in background
 node /opt/claudian/mcp/server.js &

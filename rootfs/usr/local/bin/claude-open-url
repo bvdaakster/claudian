@@ -1,0 +1,15 @@
+#!/bin/bash
+# Helper for BROWSER env var - opens a URL in the running chromium instance
+# Used by claude auth login and other CLI tools that respect $BROWSER
+URL="$1"
+if [ -z "$URL" ]; then
+  exit 1
+fi
+
+# If chromium is running, open in existing instance (inherits DPI flags)
+if pgrep -x chromium >/dev/null 2>&1; then
+  chromium "$URL" &
+else
+  # Launch with proper DPI flags
+  chromium --force-device-scale-factor=2 --no-first-run --disable-sync "$URL" &
+fi
